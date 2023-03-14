@@ -26,7 +26,7 @@ jobs:
       - name: Log in to the Coding docker registry
         uses: docker/login-action@v2
         with:
-          registry: registry-1.docker.pkg.coding.net # Coding Docker Registry 的地址
+          registry: ${{ env.REGISTRY }} # REGISTRY 为 GHA 环境变量
           username: ${{ secrets.CODING_USER }} # coding.net 的 random-user-name，设置在 GHA 的 secrets 中
           password: ${{ secrets.CODING_TOKEN }} # coding.net 的 random-password
       - name: Build and push
