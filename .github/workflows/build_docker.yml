@@ -23,20 +23,43 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+      # 登录
       - name: Log in to the Coding docker registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v1
         with:
           registry: ${{ env.REGISTRY }} # REGISTRY 为 GHA 环境变量
           username: ${{ secrets.CODING_USER }} # coding.net 的 random-user-name，设置在 GHA 的 secrets 中
           password: ${{ secrets.CODING_TOKEN }} # coding.net 的 random-password
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v4
+
+      # 设置 image 名称
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+            images: ${{ env.IMAGE_NAME_TOTAL_NAME }}
+
+      # 推送
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
         with:
           context: .
           push: true
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ secrets.CODING_USER }}/chatgpt-web:${{ github.ref_name }}
-            ${{ secrets.CODING_USER }}/chatgpt-web:latest
+      # pull new image and restart service
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_ACCESS_TOKEN }}
+          script: |
+            docker login -u ${{ secrets.CODING_USER }} -p ${{ secrets.CODING_TOKEN }} ${{ secrets.CODING_REGISTRY }}
+            docker pull ${{ env.IMAGE_TOTAL_NAME }}:${{ env.IMAGE_TAG }}
+            docker stop ${{ secrets.SERVICE_CONTAINER_NAME }}
+            docker rm ${{ secrets.SERVICE_CONTAINER_NAME }}
+            docker run -d \
+              --name ${{ secrets.SERVICE_CONTAINER_NAME }} \
+              -p ${{ secrets.EXPOSED_PORT }}:${{ secrets.EXPOSED_PORT }} \
+              --link ${{ secrets.DATABASE_CONTAINER_NAME }}:${{ secrets.DATABASE_CONTAINER_NAME }} \
+              ${{ env.IMAGE_TOTAL_NAME }}:${{ env.IMAGE_TAG }}
