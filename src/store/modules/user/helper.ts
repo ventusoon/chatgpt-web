@@ -15,7 +15,7 @@ export interface UserState {
 export function defaultSetting(): UserState {
   return {
     userInfo: {
-      avatar: 'https://github.com/ventusoon/LuvSia/raw/gh-pages/images/avatar.png',
+      avatar: 'https://luvsia.com/images/avatar.png',
       name: 'ven2s',
       description: 'Star on <a href="https://github.com/ventusoon/chatgpt-web" class="text-blue-500" target="_blank" >Github</a>',
     },
